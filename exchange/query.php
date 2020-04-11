@@ -165,6 +165,12 @@ foreach ($order_posts as $order_post) {
   );
   list($document['date'], $document['time']) = explode(' ', $order_post->post_date, 2);
 
+  foreach (array('billing_gruzopoluchatel', 'billing_inn') as $billing_info_key) {
+    if (array_key_exists($billing_info_key, $order_meta)) {
+      $document[$billing_info_key] = $order_meta[$billing_info_key];
+    }
+  }
+
   $documents[] = $document;
 }
 
@@ -184,7 +190,46 @@ echo '<?xml version="1.0" encoding="' . WC1C_XML_CHARSET . '"?>';
       <Роль>Продавец</Роль>
       <Валюта><?php echo $document['currency'] ?></Валюта>
       <Сумма><?php echo $document['total'] ?></Сумма>
-      <Комментарий><?php echo $document['comment'] ?></Комментарий>
+      <?php 
+        $contragent = $document['contragents']['billing'];
+        $comment = "";
+        if (!empty($contragent['name'])) {
+          $comment .= "Наименование: ".$contragent['name'].PHP_EOL;
+        }
+
+        if (!empty($contragent['first_name'])) {
+          $comment .= "Имя: ".$contragent['first_name'].PHP_EOL;
+        }
+
+        if (!empty($contragent['last_name'])) {
+          $comment .= "Фамилия: ".$contragent['last_name'].PHP_EOL;
+        }
+
+        if (array_key_exists('billing_inn', $document)) {
+          $comment .= "ИНН: ".$document['billing_inn'].PHP_EOL;
+        }
+
+        $comment .= "Адрес:".PHP_EOL;
+        if (!empty($contragent['full_address'])) {
+          $comment .= "Представление: ".$contragent['full_address'].PHP_EOL;
+        }
+
+        foreach ($contragent['address'] as $address_item_name => $address_item_value) {
+          $comment .= $address_item_name.": ".$address_item_value.PHP_EOL;
+        }
+
+        $comment .= "Контакты:".PHP_EOL;
+        foreach ($contragent['contacts'] as $contact_item_name => $contact_item_value) {
+          $comment .= $contact_item_name.": ".$contact_item_value.PHP_EOL;
+        }
+
+        if (array_key_exists('billing_gruzopoluchatel', $document)) {
+          $comment .= "Грузополучатель: ".$document['billing_gruzopoluchatel'].PHP_EOL;
+        }
+
+        $comment .= "Комментарий: ".$document['comment'];
+      ?>
+      <Комментарий><?php echo $comment ?></Комментарий>
       <Контрагенты>
         <?php foreach ($document['contragents'] as $type => $contragent): ?>
           <Контрагент>
@@ -221,19 +266,6 @@ echo '<?xml version="1.0" encoding="' . WC1C_XML_CHARSET . '"?>';
                 </Контакт>
               <?php endforeach ?>
             </Контакты>
-            <?php /*
-            <Представители>
-              <Представитель>
-                <Контрагент>
-                  <Отношение>Контактное лицо</Отношение>
-                  <Ид><?php echo md5($contragent['user_id']) ?></Ид>
-                  <?php if ($contragent['full_name']): ?>
-                    <Наименование><?php echo $contragent['full_name'] ?></Наименование>
-                  <?php endif ?>
-                </Контрагент>
-              </Представитель>
-            </Представители>
-            */ ?>
           </Контрагент>
         <?php endforeach ?>
       </Контрагенты>
